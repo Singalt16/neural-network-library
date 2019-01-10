@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 
 # sigmoid activation function
@@ -20,21 +21,47 @@ def chunks(arr, size):
 # structure for training and using a Neural Network
 class NeuralNetwork:
 
-    def __init__(self, input_size, output_size, hidden_size=1, num_hidden_layers=1):
-        self.num_layers = num_hidden_layers + 2
+    def __init__(self, **kwargs):
 
-        # creates a list of layer sizes used to initialize the weights and biases
-        layer_sizes = [input_size]
-        for i in range(num_hidden_layers):
-            layer_sizes.append(hidden_size)
-        layer_sizes.append(output_size)
+        if 'weights' in kwargs and 'biases' in kwargs:
+            weights = kwargs.get("weights")
+            biases = kwargs.get("biases")
+            self.num_layers = len(weights) + 1
+            self.weights = weights
+            self.biases = biases
 
-        # initializes the weights and biases with random values between -1 and 1
-        self.weights = list()
-        self.biases = list()
-        for i in range(self.num_layers - 1):
-            self.weights.append(2 * np.random.rand(layer_sizes[i+1], layer_sizes[i]) - 1)
-            self.biases.append(2 * np.random.rand(layer_sizes[i+1]) - 1)
+        elif 'input_size' in kwargs and 'output_size' in kwargs:
+            input_size = kwargs.get("input_size")
+            output_size = kwargs.get("output_size")
+            hidden_size = kwargs.get("hidden_size", 1)
+            num_hidden_layers = kwargs.get("num_hidden_layers", 1)
+            self.num_layers = num_hidden_layers + 2
+
+            # creates a list of layer sizes used to initialize the weights and biases
+            layer_sizes = [input_size]
+            for i in range(num_hidden_layers):
+                layer_sizes.append(hidden_size)
+            layer_sizes.append(output_size)
+
+            # initializes the weights and biases with random values between -1 and 1
+            weights = list()
+            biases = list()
+            for i in range(self.num_layers - 1):
+                weights.append(2 * np.random.rand(layer_sizes[i + 1], layer_sizes[i]) - 1)
+                biases.append(2 * np.random.rand(layer_sizes[i + 1]) - 1)
+
+            self.weights = np.array(weights)
+            self.biases = np.array(biases)
+
+        else:
+            raise ValueError("Must specify 'input_size' and 'output_size' or 'weights' and 'biases'"
+                             "in order to initialize weights and biases")
+
+    @classmethod
+    def from_existing_model(cls, directory):
+        weights = np.load(os.path.join(directory, "weights.npy"))
+        biases = np.load(os.path.join(directory, "biases.npy"))
+        return cls(weights=weights, biases=biases)
 
     # activation function
     def activate(self, value, derivative=False):
@@ -107,10 +134,10 @@ class NeuralNetwork:
 
         mean_weight_adjustments = np.array(weight_adjustments_batch).mean(0)
         mean_bias_adjustments = np.array(bias_adjustments_batch).mean(0)
+
         # adjusts weights and biases
-        for k in range(self.num_layers - 1):
-            self.weights[k] = self.weights[k] + mean_weight_adjustments[k]
-            self.biases[k] = self.biases[k] + mean_bias_adjustments[k]
+        self.weights += mean_weight_adjustments
+        self.biases += mean_bias_adjustments
 
     # computes the gradient for the weights and biases using the back propagation algorithm
     def back_propagate(self, predictions, targets, layer_inputs, layer_activations):
@@ -174,3 +201,9 @@ class NeuralNetwork:
         bias_gradient.reverse()
 
         return np.array(weight_gradient), np.array(bias_gradient)
+
+    def save_model(self, directory):
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        np.save(os.path.join(directory, "biases.npy"), self.biases)
+        np.save(os.path.join(directory, "weights.npy"), self.weights)
