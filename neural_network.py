@@ -67,8 +67,11 @@ class NeuralNetwork:
         return self.forward_propagate(inputs)["outputs"]
 
     # returns the error of the outputs relative to the labeled outputs
-    def cost(self, predictions, targets):
-        return np.sum((predictions - targets) ** 2)
+    def cost(self, predictions, targets, derivative=False):
+        difference = predictions - targets
+        if derivative:
+            return difference * 2
+        return np.sum(difference ** 2)
 
     # trains the model using labeled data
     def train(self, inputs, outputs, batch_size=10, learning_rate=0.01, iterations=100):
@@ -113,7 +116,7 @@ class NeuralNetwork:
     def back_propagate(self, predictions, targets, layer_inputs, layer_activations):
 
         # gets the partials of the cost function with respect to the outputs
-        ca = 2 * (predictions - targets)
+        ca = self.cost(predictions, targets, derivative=True)
 
         # gets the partials of the output layer activations with respect to the
         # layer inputs, which are equal to the derivative of the activation function
@@ -166,7 +169,7 @@ class NeuralNetwork:
             weight_gradient.append(cw)
             bias_gradient.append(cb)
 
-        # reverse the gradient to match the order of the weights and biases
+        # reverse the gradient lists to match the order of the weights and biases
         weight_gradient.reverse()
         bias_gradient.reverse()
 
