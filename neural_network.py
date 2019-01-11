@@ -1,4 +1,5 @@
 import numpy as np
+import datetime
 import os
 
 
@@ -106,9 +107,13 @@ class NeuralNetwork:
         output_batches = chunks(outputs, batch_size)
 
         for i in range(iterations):
+            time_before = datetime.datetime.now()
             for input_batch, output_batch in zip(input_batches, output_batches):
                 self.train_batch(input_batch, output_batch, learning_rate)
-            print("iter " + str(i + 1) + "/" + str(iterations) + " complete")
+            time_after = datetime.datetime.now()
+            time_diff = time_after - time_before
+            seconds_elapsed = time_diff.total_seconds()
+            print("iter " + str(i + 1) + "/" + str(iterations) + " complete in " + str(seconds_elapsed) + "s")
 
     # trains the model for one iteration on one batch
     def train_batch(self, input_batch, output_batch, learning_rate=0.01):
